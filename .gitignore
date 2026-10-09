@@ -1,0 +1,9 @@
+.gradle/
+**/build/
+local.properties
+/.amp/in/
+*.apk
+*.idsig
+*.jks
+*.keystore
+keystore.properties
