@@ -1,4 +1,4 @@
-package io.github.opd2413.ctrlcenter;
+package io.github.ffdvdgd.oneshade;
 
 import android.app.Activity;
 import android.app.Notification;

@@ -1,4 +1,4 @@
-package io.github.opd2413.ctrlcenter;
+package io.github.ffdvdgd.oneshade;
 
 import android.content.res.Configuration;
 import android.graphics.Rect;
@@ -8,199 +8,190 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
-import de.robv.android.xposed.IXposedHookLoadPackage;
-import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.XposedHelpers;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import io.github.libxposed.api.XposedInterface;
+import io.github.libxposed.api.XposedModule;
 
 /** Uses the real Oplus notification and QS controllers, without copying notifications. */
-public final class DualShadeHook implements IXposedHookLoadPackage {
+public final class DualShadeHook extends XposedModule {
     private static final String TAG = "OPD2413DualShade";
     private static final String PAGER = "com.oplus.systemui.separate.OplusPanelViewPagerController";
+    private static final Map<Class<?>, Map<String, Field>> FIELDS = new HashMap<>();
+    private static final Map<Class<?>, Map<String, Method>> METHODS = new HashMap<>();
+    private final List<XposedInterface.HookHandle> hooks = new ArrayList<>();
     private DualShade shade;
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam param) {
-        if (!"com.android.systemui".equals(param.packageName)
-                || !"OPD2413".equals(Build.MODEL) || Build.VERSION.SDK_INT != 36) {
+    public void onPackageReady(PackageReadyParam param) {
+        if (!"com.android.systemui".equals(param.getPackageName())
+                || !"OPD2413".equals(Build.MODEL)) {
             return;
         }
         try {
-            Class<?> pager = XposedHelpers.findClass(PAGER, param.classLoader);
-            Class<?> notification = XposedHelpers.findClass(
-                    "com.android.systemui.shade.NotificationPanelViewController", param.classLoader);
-            Class<?> qs = XposedHelpers.findClass(
-                    "com.oplus.systemui.separate.OplusSeparateQSManager", param.classLoader);
-            XposedBridge.hookAllMethods(pager, "onInit", new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam p) {
-                    try {
-                        View view = (View) field(p.thisObject, "mView");
-                        long version = view.getContext().getPackageManager()
-                                .getPackageInfo("com.android.systemui", 0).getLongVersionCode();
-                        if (version != 169912) {
-                            log("Unsupported SystemUI version: " + version);
-                            return;
-                        }
-                        shade = new DualShade(p.thisObject);
-                        log("Attached to SystemUI 16.99.12");
-                    } catch (Throwable error) {
-                        fail(error);
-                    }
+            ClassLoader loader = param.getClassLoader();
+            Class<?> pager = Class.forName(PAGER, false, loader);
+            Class<?> notification = Class.forName(
+                    "com.android.systemui.shade.NotificationPanelViewController", false, loader);
+            Class<?> qs = Class.forName(
+                    "com.oplus.systemui.separate.OplusSeparateQSManager", false, loader);
+            hookAllMethods(pager, "onInit", chain -> {
+                Object result = chain.proceed();
+                try {
+                    View view = (View) field(chain.getThisObject(), "mView");
+                    long version = view.getContext().getPackageManager()
+                            .getPackageInfo("com.android.systemui", 0).getLongVersionCode();
+                    shade = new DualShade(chain.getThisObject());
+                    log("Attached to SystemUI " + version);
+                } catch (Throwable error) {
+                    fail(error);
                 }
+                return result;
             });
             hookExpansion(pager, "updateQSExpandFraction", true);
             hookExpansion(pager, "updateNotifyExpandFraction", false);
             hookNativeFling(notification, "fling", false, 3);
-            Class<?> qsAnimator = XposedHelpers.findClass(
-                    "com.oplus.systemui.plugins.qs.animator.QSPanelAnimatorManager", param.classLoader);
+            Class<?> qsAnimator = Class.forName(
+                    "com.oplus.systemui.plugins.qs.animator.QSPanelAnimatorManager", false, loader);
             hookNativeFling(qsAnimator, "onFling", true, 1);
-            XposedBridge.hookAllMethods(qsAnimator, "onTouchMove", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    if (shade == null || !shade.dispatchingQs || !shade.dualVisible) return;
+            hookAllMethods(qsAnimator, "onTouchMove", chain -> {
+                if (shade != null && shade.dispatchingQs && shade.dualVisible) {
                     try {
                         // This is a touch target, not an animated spring output. Start the other
                         // native collapse on the upward drag, rather than waiting for ACTION_UP.
-                        if (!(boolean) p.args[2] && (float) p.args[0]
-                                < (float) call(p.thisObject, "getDefaultSettingEngine")) {
+                        if (!(boolean) chain.getArg(2) && (float) chain.getArg(0)
+                                < (float) call(chain.getThisObject(), "getDefaultSettingEngine")) {
                             shade.onFling(true, false);
                         }
                     } catch (Throwable error) {
                         fail(error);
                     }
                 }
+                return chain.proceed();
             });
-            XC_MethodHook finishOpeningGesture = new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    // Gesture completion contains a second, independent overlap-collapse policy.
-                    if (shade != null && shade.active() && (boolean) p.args[1]) {
-                        shade.expansionCallbackDepth++;
-                        p.setObjectExtra(TAG, shade);
-                    }
-                }
-
-                @Override
-                protected void afterHookedMethod(MethodHookParam p) {
-                    DualShade current = (DualShade) p.getObjectExtra(TAG);
-                    if (current != null) current.expansionCallbackDepth--;
+            XposedInterface.Hooker finishOpeningGesture = chain -> {
+                // Gesture completion contains a second, independent overlap-collapse policy.
+                DualShade current = shade;
+                boolean entered = current != null && current.active() && (boolean) chain.getArg(1);
+                if (entered) current.expansionCallbackDepth++;
+                try {
+                    return chain.proceed();
+                } finally {
+                    if (entered) current.expansionCallbackDepth--;
                 }
             };
-            XposedBridge.hookAllMethods(pager, "notifySeparateQSEndMotionEvent", finishOpeningGesture);
-            XposedBridge.hookAllMethods(pager, "notifyNTEndMotionEvent", finishOpeningGesture);
-            XC_MethodHook preventOverlapCollapse = new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    if (shade != null && shade.active() && shade.expansionCallbackDepth > 0) {
-                        p.setResult(null);
-                    }
-                }
+            hookAllMethods(pager, "notifySeparateQSEndMotionEvent", finishOpeningGesture);
+            hookAllMethods(pager, "notifyNTEndMotionEvent", finishOpeningGesture);
+            XposedInterface.Hooker preventOverlapCollapse = chain -> {
+                if (shade != null && shade.active() && shade.expansionCallbackDepth > 0) return null;
+                return chain.proceed();
             };
-            XposedBridge.hookAllMethods(notification, "collapseNotifPanelWithoutAnimate", preventOverlapCollapse);
-            XposedBridge.hookAllMethods(qs, "collapseQSPanel", preventOverlapCollapse);
-            XposedBridge.hookAllMethods(pager, "getDownOnQsArea", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    // Open either side through notifications; start QS's own native animation alongside it.
-                    // New gestures in an already open shade are routed directly to their pane below.
-                    if (shade != null && shade.active()) p.setResult(false);
-                }
+            hookAllMethods(notification, "collapseNotifPanelWithoutAnimate", preventOverlapCollapse);
+            hookAllMethods(qs, "collapseQSPanel", preventOverlapCollapse);
+            hookAllMethods(pager, "getDownOnQsArea", chain -> {
+                // Open either side through notifications; start QS's own native animation alongside it.
+                // New gestures in an already open shade are routed directly to their pane below.
+                return shade != null && shade.active() ? false : chain.proceed();
             });
-            Class<?> qsHost = XposedHelpers.findClass(qs.getName() + "$SeparateQSHost", param.classLoader);
-            XposedBridge.hookAllMethods(qsHost, "getNtIsFullCollapsed", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    // QS otherwise intercepts every tile tap when notifications are expanded.
-                    if (shade != null && shade.dispatchingQs && shade.active() && shade.dualVisible) {
-                        p.setResult(true);
-                    }
-                }
+            Class<?> qsHost = Class.forName(qs.getName() + "$SeparateQSHost", false, loader);
+            hookAllMethods(qsHost, "getNtIsFullCollapsed", chain -> {
+                // QS otherwise intercepts every tile tap when notifications are expanded.
+                if (shade != null && shade.dispatchingQs && shade.active() && shade.dualVisible) return true;
+                return chain.proceed();
             });
-            XposedBridge.hookAllMethods(notification, "updateVisibility$9", new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam p) {
-                    if (shade != null) shade.refreshSafely();
-                }
+            hookAllMethods(notification, "updateVisibility$9", chain -> {
+                Object result = chain.proceed();
+                if (shade != null) shade.refreshSafely();
+                return result;
             });
-            XposedBridge.hookAllMethods(pager, "updateNotificationPanelAlpha", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    if (shade != null && shade.active() && shade.dualVisible) p.args[1] = 1f;
+            hookAllMethods(pager, "updateNotificationPanelAlpha", chain -> {
+                if (shade != null && shade.active() && shade.dualVisible) {
+                    Object[] args = chain.getArgs().toArray();
+                    args[1] = 1f;
+                    return chain.proceed(args);
                 }
+                return chain.proceed();
             });
-            Class<?> touch = XposedHelpers.findClass(PAGER + "$TouchHandler", param.classLoader);
-            XposedBridge.hookAllMethods(touch, "onInterceptTouchEvent", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    // Both native page roots cover the screen, even where they draw nothing.
-                    // Let our touch handler choose the pane instead of the topmost page root.
-                    if (shade == null) return;
-                    if (((MotionEvent) p.args[0]).getActionMasked() == MotionEvent.ACTION_DOWN) {
+            Class<?> touch = Class.forName(PAGER + "$TouchHandler", false, loader);
+            hookAllMethods(touch, "onInterceptTouchEvent", chain -> {
+                // Both native page roots cover the screen, even where they draw nothing.
+                // Let our touch handler choose the pane instead of the topmost page root.
+                if (shade != null) {
+                    if (((MotionEvent) chain.getArg(0)).getActionMasked() == MotionEvent.ACTION_DOWN) {
                         // Finish the opening gesture natively before routing new gestures.
                         shade.routingTouch = shade.active() && shade.dualVisible;
                     }
-                    if (shade.routingTouch && shade.active()) p.setResult(true);
+                    if (shade.routingTouch && shade.active()) return true;
                 }
+                return chain.proceed();
             });
-            XposedBridge.hookAllMethods(touch, "onTouchEvent", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam p) {
-                    if (shade == null || !shade.routingTouch || !shade.active()) return;
-                    MotionEvent event = (MotionEvent) p.args[0];
-                    DualShade current = shade;
-                    try {
-                        p.setResult(current.dispatch(event));
-                    } catch (Throwable error) {
-                        fail(error);
-                    } finally {
-                        if (event.getActionMasked() == MotionEvent.ACTION_UP
-                                || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-                            current.routingTouch = false;
-                        }
+            hookAllMethods(touch, "onTouchEvent", chain -> {
+                if (shade == null || !shade.routingTouch || !shade.active()) return chain.proceed();
+                MotionEvent event = (MotionEvent) chain.getArg(0);
+                DualShade current = shade;
+                try {
+                    return current.dispatch(event);
+                } catch (Throwable error) {
+                    fail(error);
+                } finally {
+                    if (event.getActionMasked() == MotionEvent.ACTION_UP
+                            || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                        current.routingTouch = false;
                     }
                 }
+                return chain.proceed();
             });
-            log("Hooks installed");
+            log("Hooks installed; API=" + getApiVersion() + "; framework=" + getFrameworkVersion());
         } catch (Throwable error) {
             fail(error);
         }
     }
 
+    private void hookAllMethods(Class<?> type, String name, XposedInterface.Hooker hooker) {
+        int count = 0;
+        for (Method method : type.getDeclaredMethods()) {
+            if (method.getName().equals(name)) {
+                hooks.add(hook(method).setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
+                        .intercept(hooker));
+                count++;
+            }
+        }
+        if (count == 0) throw new NoSuchMethodError(type.getName() + "#" + name);
+    }
+
     private void hookNativeFling(Class<?> type, String name, boolean qs, int expandArgument) {
-        XposedBridge.hookAllMethods(type, name, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam p) {
-                if (shade == null) return;
+        hookAllMethods(type, name, chain -> {
+            if (shade != null) {
                 try {
-                    shade.onFling(qs, (boolean) p.args[expandArgument]);
+                    shade.onFling(qs, (boolean) chain.getArg(expandArgument));
                 } catch (Throwable error) {
                     fail(error);
                 }
             }
+            return chain.proceed();
         });
     }
 
     private void hookExpansion(Class<?> pager, String name, boolean qs) {
-        XposedBridge.hookAllMethods(pager, name, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam p) {
-                if (shade != null && shade.active()) {
-                    shade.expansionCallbackDepth++;
-                    p.setObjectExtra(TAG, shade);
-                }
-            }
-
-            @Override
-            protected void afterHookedMethod(MethodHookParam p) {
-                DualShade current = (DualShade) p.getObjectExtra(TAG);
-                if (current == null) return;
-                current.expansionCallbackDepth--;
-                try {
-                    current.onExpansion(qs, (float) p.args[0]);
-                } catch (Throwable error) {
-                    fail(error);
+        hookAllMethods(pager, name, chain -> {
+            DualShade current = shade;
+            boolean entered = current != null && current.active();
+            if (entered) current.expansionCallbackDepth++;
+            try {
+                return chain.proceed();
+            } finally {
+                if (entered) {
+                    current.expansionCallbackDepth--;
+                    try {
+                        current.onExpansion(qs, (float) chain.getArg(0));
+                    } catch (Throwable error) {
+                        fail(error);
+                    }
                 }
             }
         });
@@ -208,19 +199,72 @@ public final class DualShadeHook implements IXposedHookLoadPackage {
 
     private void fail(Throwable error) {
         log(Log.getStackTraceString(error));
-        if (shade != null) {
-            shade.disabled = true;
-            shade.restore();
-            shade = null;
+        DualShade current = shade;
+        shade = null;
+        for (XposedInterface.HookHandle handle : hooks) handle.unhook();
+        hooks.clear();
+        if (current != null) {
+            current.disabled = true;
+            current.restore();
         }
     }
 
     private static Object field(Object object, String name) {
-        return XposedHelpers.getObjectField(object, name);
+        Map<String, Field> fields = FIELDS.computeIfAbsent(object.getClass(), type -> new HashMap<>());
+        Field field = fields.get(name);
+        try {
+            if (field == null) {
+                for (Class<?> type = object.getClass(); type != null; type = type.getSuperclass()) {
+                    try {
+                        field = type.getDeclaredField(name);
+                        field.setAccessible(true);
+                        fields.put(name, field);
+                        break;
+                    } catch (NoSuchFieldException ignored) {
+                        // Private fields may belong to a superclass.
+                    }
+                }
+                if (field == null) throw new NoSuchFieldException(object.getClass().getName() + "#" + name);
+            }
+            return field.get(object);
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException("Cannot read " + name, error);
+        }
     }
 
     private static Object call(Object object, String name, Object... args) {
-        return XposedHelpers.callMethod(object, name, args);
+        Map<String, Method> methods = METHODS.computeIfAbsent(object.getClass(), type -> new HashMap<>());
+        Method method = methods.get(name);
+        try {
+            if (method == null) {
+                for (Class<?> type = object.getClass(); type != null && method == null; type = type.getSuperclass()) {
+                    for (Method candidate : type.getDeclaredMethods()) {
+                        if (!candidate.getName().equals(name) || candidate.getParameterCount() != args.length) continue;
+                        Class<?>[] types = candidate.getParameterTypes();
+                        boolean matches = true;
+                        for (int i = 0; i < types.length; i++) {
+                            if (!(args[i] == null && !types[i].isPrimitive()
+                                    || types[i].isInstance(args[i])
+                                    || types[i] == boolean.class && args[i] instanceof Boolean
+                                    || types[i] == float.class && args[i] instanceof Float)) {
+                                matches = false;
+                                break;
+                            }
+                        }
+                        if (matches) {
+                            method = candidate;
+                            method.setAccessible(true);
+                            methods.put(name, method);
+                            break;
+                        }
+                    }
+                }
+                if (method == null) throw new NoSuchMethodException(object.getClass().getName() + "#" + name);
+            }
+            return method.invoke(object, args);
+        } catch (ReflectiveOperationException error) {
+            throw new IllegalStateException("Cannot call " + name, error);
+        }
     }
 
     private static View findView(View root, String name) {
@@ -229,9 +273,9 @@ public final class DualShadeHook implements IXposedHookLoadPackage {
         return root.findViewById(id);
     }
 
-    private static void log(String message) {
+    private void log(String message) {
         Log.i(TAG, message);
-        XposedBridge.log(TAG + ": " + message);
+        log(Log.INFO, TAG, message);
     }
 
     private final class DualShade {
@@ -266,9 +310,13 @@ public final class DualShadeHook implements IXposedHookLoadPackage {
             pagerView = (View) field(controller, "mView");
             content = findView(notificationView, "notification_container_parent");
             stack = findView(notificationView, "notification_stack_scroller");
-            notificationRow = XposedHelpers.findClass(
+            try {
+                notificationRow = Class.forName(
                     "com.android.systemui.statusbar.notification.row.ExpandableNotificationRow",
-                    notificationView.getClass().getClassLoader());
+                    false, notificationView.getClass().getClassLoader());
+            } catch (ClassNotFoundException error) {
+                throw new IllegalStateException("Notification row class missing", error);
+            }
             if (content == null || stack == null) throw new IllegalStateException("Notification views missing");
             originalTranslation = content.getTranslationX();
             content.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> refreshSafely());

@@ -19,7 +19,7 @@ adb -s "$SERIAL" shell dumpsys package com.android.systemui
 adb -s "$SERIAL" shell pidof com.android.systemui
 ```
 
-所有 ADB 命令都带 `-s "$SERIAL"`，避免操作另一个手机。安装后的作用域只勾选 `com.android.systemui`。
+所有 ADB 命令都带 `-s "$SERIAL"`，避免操作另一个手机。0.5.0 声明现代静态作用域，只允许 `com.android.systemui`；验证框架识别新包与 API 要求，确认系统界面已启用且不能增加其他作用域。旧包 `io.github.opd2413.ctrlcenter` 必须先停用／卸载，不能同时启用两份模块。
 
 ## 2. debug 通知 fixture
 
@@ -28,8 +28,8 @@ adb -s "$SERIAL" shell pidof com.android.systemui
 下列操作适用于安装了 debug APK 的开发设备。部分 Root 模块会过滤 shell 权限，需要 Root 才能启动 fixture：
 
 ```sh
-adb -s "$SERIAL" shell 'su -c "pm grant io.github.opd2413.ctrlcenter android.permission.POST_NOTIFICATIONS"'
-adb -s "$SERIAL" shell 'su -c "am start -S -n io.github.opd2413.ctrlcenter/.VerificationActivity --ez post true --ei count 12"'
+adb -s "$SERIAL" shell 'su -c "pm grant io.github.ffdvdgd.oneshade android.permission.POST_NOTIFICATIONS"'
+adb -s "$SERIAL" shell 'su -c "am start -S -n io.github.ffdvdgd.oneshade/.VerificationActivity --ez post true --ei count 12"'
 ```
 
 fixture 发布编号 1…12 的低重要性通知。点击日志为 `DualShadeVerification: Clicked notification N`，点击后的 Activity 显示编号，通知设置了自动删除。左右划除应只移除对应编号。ColorOS 可能把多个测试通知自动合并；先按当前截图展开组，再定位实际卡片，不复用过时坐标。
@@ -41,7 +41,7 @@ adb -s "$SERIAL" shell logcat -d -v brief -s 'DualShadeVerification:*'
 结束时只取消本模块的通知：
 
 ```sh
-adb -s "$SERIAL" shell 'su -c "am start -S -n io.github.opd2413.ctrlcenter/.VerificationActivity --ez cleanup true"'
+adb -s "$SERIAL" shell 'su -c "am start -S -n io.github.ffdvdgd.oneshade/.VerificationActivity --ez cleanup true"'
 ```
 
 该 Activity 内的 `cancelAll()` 作用于模块自己的 NotificationManager，不是系统的“清空所有通知”。换用独立 debug 签名可能无法覆盖官方 release 签名；不要为跑 fixture 强制卸载正在使用的正式模块，优先使用专门的开发设备。
@@ -128,15 +128,30 @@ ffmpeg -i review-redacted.mp4 -vf 'setpts=4*PTS' \
 
 lint 警告涉及工具版本提示、动态资源查找、备份属性声明，以及只在 debug 出现的测试文字拼接。本次没有抑制警告或为发布顺便修改不相关功能。
 
+### 0.5.0 现代 API 102 迁移验证
+
+环境仍为上述 OPD2413 固件与 SystemUI；框架已更新为 LSPosed IT `2.2.1-it (7920)`，API 102。
+
+- 新包为 `io.github.ffdvdgd.oneshade`，`0.5.0(6)`；旧包已卸载，未同时加载两份 Hook。
+- 最终 debug / release 构建和 lint 通过：0 错误，debug 5 项警告、release 4 项。警告为两处私有 API 反射、动态资源查找、备份属性声明，以及 debug 的测试文字拼接；没有抑制警告。
+- APK 元数据为 `minApiVersion=102`、`targetApiVersion=102`、`staticScope=true`；入口与作用域打包正确，无旧 API 入口或框架 API 实现类。LSPosed 显示 API 102 和静态作用域提示，列表只有已选中的 `com.android.systemui`。
+- 框架日志确认新包安装 Hook、挂载 SystemUI `169912`、接入重复图标处理；不再以该版本号阻止其他固件加载。
+- 最终 debug 包的左右交替 10 次基准均显示两栏，截图逐张检查通过；基准期间 SystemUI PID 不变，最终通知展开进度为 0，两栏原生收起日志完整。
+- 测试通知组展开、编号 6 点击命中和自动删除通过。单条左划显示 ColorOS 原生操作菜单，右划删除通过，其他通知和 QS 保持显示。一次通知组划除因坐标过期命中空白而关闭面板，不计作通过；改用单条 fixture 和新截图后重新验证。
+- 正式 APK 的 v3 签名和 16 KiB zipalign 检查通过；无 debuggable、测试 Activity 或通知发布权限。设备安装 APK 与发布文件 SHA-256 一致。
+- 正式包重载后复查了左右入口、左右空白轻点／上滑、两栏收起与竖屏原生单栏回退；该轮 PID 不变。测试通知已清理，临时旋转设置已恢复，未改其他模块配置。
+
+本次没有重新录制高帧率动画视频，也没有完整重测锁屏、分离模式切换、所有通知模板／列表滚动和极短间隔反向手势。0.4 的动画录屏和更广通知交互记录属于历史基准，不能当作新版每个场景的新证据。
+
 尚未完整验证其他固件、其他设备、全部通知模板／回复操作、所有反向和极短间隔手势、整机重启后的长期稳定性及与所有 Root 模块的组合。去掉名称标记不改变这些限制。
 
 ## 6. 排查与恢复
 
 | 现象 | 首先检查 |
 | --- | --- |
-| 模块无效 | LSPosed 是否启用、作用域是否仅 SystemUI、是否重载进程、型号/API/版本保护是否匹配 |
-| `Unsupported SystemUI version` | 固件的实际 versionCode；不要直接删保护 |
-| 找不到类／字段／方法 | 对照设备私有 API 与插件类加载器，查看 Xposed 日志 |
+| 模块无效 | LSPosed 是否支持现代 API 102、是否识别并启用新包、SystemUI 静态作用域是否启用、是否重载进程、型号是否匹配 |
+| 新固件无双栏 | 0.5.0 不再按精确版本拒绝运行；提供实际版本与模块日志，检查私有 API 变化 |
+| 找不到类／字段／方法 | 本模块会撤销 Hook；对照设备私有 API 与插件类加载器修复适配，查看框架日志 |
 | 左右只出现一栏 | 两处结束事件互斥保护、两栏原生状态、是否处于不适用状态 |
 | 空白不关闭或按钮不响应 | 通知实际行命中、整屏根视图抢事件、QS 临时拦截豁免 |
 | 通知关闭时横向偏移 | 是否用动画屏幕坐标算布局，是否普通关闭时恢复了原 X |

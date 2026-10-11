@@ -9,6 +9,6 @@ if [[ "$model" != OPD2413 ]]; then
 fi
 
 # Removing this APK leaves LuckyTool, LSPosed, and all other modules intact.
-adb -s "$serial" uninstall io.github.opd2413.ctrlcenter
+adb -s "$serial" uninstall io.github.ffdvdgd.oneshade
 adb -s "$serial" shell 'su -c "kill $(pidof com.android.systemui)"'
 printf 'OneShade module removed. SystemUI will restart without its hooks.\n'

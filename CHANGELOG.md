@@ -1,5 +1,14 @@
 # 更新记录
 
+## 0.5.0 · 2026-10-11
+
+- 包名改为 `io.github.ffdvdgd.oneshade`；旧版不能覆盖升级，请先停用并卸载 `io.github.opd2413.ctrlcenter`，再安装和启用新包。
+- 迁移到现代 Xposed API 102，声明 `staticScope=true`，作用域仅 `com.android.systemui`。
+- 去除 Android API 必须等于 36、SystemUI versionCode 必须等于 `169912` 的运行限制；保留 Android 16 安装下限与 OPD2413 型号条件，新固件按实际私有 API 兼容性尝试运行。
+- 缺少必需 Hook 方法或发生适配错误时，撤销本模块 Hook；保留原生双栏布局、触摸与动画入口。
+- 保留新增的 MIT 许可证和模块仓库介绍材料，更新申请草稿、迁移说明和恢复脚本。
+- 在 LSPosed IT `2.2.1-it (7920)` / API 102 上重新验证静态作用域、交替开合、通知交互与正式签名包；具体边界见验证文档。
+
 ## 0.4.1 · 2026-10-09
 
 - 首次发布到 GitHub，仓库名为 OneShade。

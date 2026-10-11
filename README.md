@@ -4,12 +4,15 @@
 
 [![Build](https://github.com/FFDVDGD/OneShade/actions/workflows/build.yml/badge.svg)](https://github.com/FFDVDGD/OneShade/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/FFDVDGD/OneShade)](https://github.com/FFDVDGD/OneShade/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-OneShade 是 LSPosed 模块。在解锁、横屏、通知与控制中心分离模式下，左侧显示真实通知，右侧保留原生 ColorOS 控制中心。应用显示名称为“平板双栏控制中心”，包名为 `io.github.opd2413.ctrlcenter`。
+OneShade 是 LSPosed 模块。在解锁、横屏、通知与控制中心分离模式下，左侧显示真实通知，右侧保留原生 ColorOS 控制中心。应用显示名称为“平板双栏控制中心”，包名为 `io.github.ffdvdgd.oneshade`。
+
+**0.5.0 更改了包名：从 0.4.1 或更早版本迁移时，请先停用并卸载旧模块 `io.github.opd2413.ctrlcenter`，再安装、启用新包；不能覆盖升级。**
 
 ![原生双栏效果，个人信息已遮挡](docs/images/dual-shade.png)
 
-截图来自 0.4 的原生动画验证，已遮挡设备名称与 Wi-Fi 名称；0.4.1 保留相同布局和动画。
+截图来自 0.4 的原生动画验证，已遮挡设备名称与 Wi-Fi 名称；新版保留相同布局和原生动画逻辑。
 
 ## 功能
 
@@ -25,7 +28,7 @@ OneShade 是 LSPosed 模块。在解锁、横屏、通知与控制中心分离�
 
 ## 兼容性与风险
 
-**只适配下列实测环境，不是通用 OnePlus / ColorOS 模块。**
+面向 **OPD2413、Android 16 及以上、ColorOS 分离式通知／控制中心**，需要支持现代 Xposed API 102 的 LSPosed。以下是已有实测记录，不是固件版本白名单，也不代表所有 ColorOS 设备都已适配。
 
 | 项目 | 实测值 |
 | --- | --- |
@@ -33,10 +36,12 @@ OneShade 是 LSPosed 模块。在解锁、横屏、通知与控制中心分离�
 | 系统 | Android 16 / API 36，ColorOS 16.1 |
 | 固件 | `OPD2413_16.0.9.400(CN01)` |
 | SystemUI | `16.99.12` / versionCode `169912` |
-| 框架 | LSPosed IT `2.1.1-it (7789)` |
+| 框架 | LSPosed IT `2.2.1-it (7920)`，API 102（0.5.0 实测） |
 | Root | KernelSU |
 
-代码检查型号、API 和 SystemUI versionCode。其他设备或版本不启用双栏；升级固件后不要删除保护来强行使用。
+代码保留 OPD2413 型号条件，不再要求 Android API 必须等于 36 或 SystemUI versionCode 必须等于 `169912`。新固件会尝试使用现有私有 API；缺少 Hook 方法、字段或视图时记录错误并撤销本模块 Hook。遇到问题请附上设备与版本信息反馈，不必先修改版本白名单。未实测的版本仍可能出现运行时差异。
+
+模块采用现代 API，`staticScope=true`，声明的作用域仅 `com.android.systemui`。框架不允许把作用域扩展到其他应用；这不等于保证所有固件兼容。
 
 已知限制：
 
@@ -50,7 +55,7 @@ OneShade 是 LSPosed 模块。在解锁、横屏、通知与控制中心分离�
 ## 下载与安装
 
 1. 从 [GitHub Releases](https://github.com/FFDVDGD/OneShade/releases/latest) 下载正式签名的 `OneShade-v*.apk`；同页提供 `SHA256SUMS`。
-2. 安装后，在 LSPosed 启用“平板双栏控制中心”，**作用域只勾选系统界面 `com.android.systemui`**。
+2. 安装后，在 LSPosed 启用“平板双栏控制中心”；静态作用域只允许系统界面 `com.android.systemui`，确认它已启用。
 3. 保存当前操作，重载 SystemUI；如果回到锁屏，正常解锁。
 4. 横屏并打开系统的通知／控制中心分离模式，从顶部任一侧下拉。
 
@@ -62,11 +67,11 @@ ADB 安装示例：
 adb devices -l
 SERIAL='<目标 OPD2413 的 ADB 序列号>'
 adb -s "$SERIAL" shell getprop ro.product.model
-adb -s "$SERIAL" install -r OneShade-v0.4.1.apk
+adb -s "$SERIAL" install -r OneShade-v0.5.0.apk
 adb -s "$SERIAL" shell 'su -c "kill $(pidof com.android.systemui)"'
 ```
 
-官方 0.4.1 使用正式证书，并携带此前本地开发签名的 Android 证书轮换证明；在目标平板上已无需卸载覆盖更新。其他人自行编译的 APK 可能签名不同；出现 `INSTALL_FAILED_UPDATE_INCOMPATIBLE` 时不要绕过签名验证。若选择卸载旧包重装，需要重新确认本模块启用状态和作用域。
+同一新包名的后续版本需要使用相同正式签名才能覆盖更新。0.4.1 的签名轮换证明只适用于旧包，不能让不同 applicationId 覆盖安装。其他人自行编译的 APK 可能签名不同；出现 `INSTALL_FAILED_UPDATE_INCOMPATIBLE` 时不要绕过签名验证。
 
 ## 恢复原状
 
@@ -76,7 +81,7 @@ adb -s "$SERIAL" shell 'su -c "kill $(pidof com.android.systemui)"'
 ./scripts/recover-device.sh "$SERIAL"
 ```
 
-脚本要求显式指定设备，先检查型号，随后只卸载 `io.github.opd2413.ctrlcenter` 并重启 SystemUI；不会停用 LSPosed、卸载其他模块或清空用户通知。该路径要求已有 ADB 授权和可用 Root，不能保证在所有系统故障中可达。
+脚本要求显式指定设备，先检查型号，随后只卸载 `io.github.ffdvdgd.oneshade` 并重启 SystemUI；不会停用 LSPosed、卸载其他模块或清空用户通知。旧版请卸载旧包名。该路径要求已有 ADB 授权和可用 Root，不能保证在所有系统故障中可达。
 
 ## 构建与开发文档
 
@@ -91,11 +96,14 @@ debug APK 使用本地 debug 签名，包含由 DUMP 权限保护的通知测试
 - [完整开发文档](docs/DEVELOPMENT.md)：工程、Hook 表、调用关系、状态协调、原生动画、布局、触摸路由、新固件适配、签名及发布。
 - [实机验证与排查](docs/TESTING.md)：安全准备、通知 fixture、测试矩阵、高帧率录屏、已有证据、未覆盖项及恢复步骤。
 - [更新记录](CHANGELOG.md)。
+- [LSPosed 官方模块仓库收录准备](docs/LSPOSED.md)：申请草稿、分发介绍与发布清单；尚未提交或收录。
 
 0.4 的实机基准中，10 次左右交替开合均显示两栏，通知点击／划除／滚动、两侧空白手势及设置按钮通过。0.4.1 不改控制中心源码，另验证了正式 APK 的构建、签名、覆盖安装、名称及 SystemUI 重载后的双栏功能。CI 不替代实机验证。
+
+0.5.0 在 API 102 框架上重新验证了新包识别、静态作用域、10 次交替开合、测试通知点击／自动删除、通知组展开及单条右划删除。正式签名 APK 已安装，设备上的 APK 与发布文件 SHA-256 一致；重载后复查左右入口、两侧空白轻点／上滑和竖屏回退。具体范围与未覆盖项见验证文档。
 
 ## 调研与许可说明
 
 调研过 LuckyTool 和 [Oxygen Customizer](https://github.com/DHD2280/Oxygen-Customizer)。后者提供 Oplus Hook 参考，本项目的具体私有 API 与逻辑以实测设备为准，没有直接移植完整模块。系统自带 split shade 与厂商平板分离页互斥策略，使单改资源布尔值不足以实现目标。
 
-不分发厂商 APK、反编译源码或个人通知资料。仓库自身尚未指定开源许可证；第三方原有许可声明保留，详情见开发文档。
+本项目采用 [MIT License](LICENSE)，Copyright (c) 2026 FFDVDGD。第三方组件保留原有许可声明，MIT 不替代其许可，详情见开发文档。不分发厂商 APK、反编译源码或个人通知资料。
