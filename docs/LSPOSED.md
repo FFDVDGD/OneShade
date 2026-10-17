@@ -1,6 +1,6 @@
-# LSPosed 官方模块仓库收录准备
+# LSPosed 官方模块仓库发布与维护
 
-本文件是维护者的准备清单与申请草稿，**不表示已经提交、审核通过或收录**。核对日期：2026-10-10。
+官方分发仓库已建立并发布 0.5.0。**仓库发布不等于目录已展示**：About 字段尚待维护者在网页登录后设置，目录展示仍待确认。核对日期：2026-10-17。
 
 官方依据：
 
@@ -18,61 +18,33 @@
 | 作用域 | 现代 API 102，`staticScope=true`，仅 `com.android.systemui` |
 | 许可证 | MIT；第三方组件保持原有许可 |
 | 源码仓库发布格式 | `v0.5.0`，附件 `OneShade-v0.5.0.apk` 与 `SHA256SUMS` |
-| 官方模块仓库收录 | 尚未提交 |
+| 官方分发仓库 | [Xposed-Modules-Repo/io.github.ffdvdgd.oneshade](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade) |
+| 官方 Release | [0.5.0 / `6-0.5.0`](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/tag/6-0.5.0) |
+| About／目录展示 | About 待网页设置；[目录页面](https://modules.lsposed.org/module/io.github.ffdvdgd.oneshade)尚待确认 |
 
 包名已按维护者 GitHub 用户名迁移为 `io.github.ffdvdgd.oneshade`，不再申请旧包名例外。官方要求反向域名属于申请人；无自有域名时可使用 `io.github.<GitHub 用户名或组织名>`，使用组织名需先公开组织成员身份。
 
 **迁移提示：0.5.0 改了 applicationId，即使使用同一签名也不能覆盖旧包；先停用并卸载 `io.github.opd2413.ctrlcenter`，再安装和启用新模块。** 这句话同时放入 Release 更新说明，避免同时启用两份模块。
 
-新包需要重新构建、签名及实机验证，不能把旧 APK 直接上传成新包的发布附件。静态作用域来自现代 API 元数据，不是旧 API 的推荐作用域列表。
+0.5.0 新包已完成构建、签名及实机验证。本次官方分发复用源码仓库已发布的原始 APK，没有重新构建或进行新的实机验证。不能把旧包 APK 改名冒充新包。静态作用域来自现代 API 元数据，不是旧 API 的推荐作用域列表。
 
-## 2. 申请草稿
+## 2. 发布产物与权限
 
-在 [官方申请入口](https://modules.lsposed.org/submission) 选择提交新模块，使用最终 APK 的 applicationId。待新版正式 APK 发布且下面的检查清单通过后使用此草稿。
+不再需要为该包重复提交申请，也不要使用 `[transfer]` 转移源码仓库。官方仓库只用于介绍和正式包分发，源码保留在 `FFDVDGD/OneShade`。
 
-标题：
-
-```text
-[submission] io.github.ffdvdgd.oneshade
-```
-
-正文：
+0.5.0 在两个仓库中的 APK SHA-256 一致：
 
 ```text
-Module name: OneShade / 平板双栏控制中心
-Application ID: io.github.ffdvdgd.oneshade
-Source: https://github.com/FFDVDGD/OneShade
-Releases: https://github.com/FFDVDGD/OneShade/releases
-Support: https://github.com/FFDVDGD/OneShade/issues
-License: MIT
-
-OneShade is an Xposed / LSPosed module that displays the native notification
-panel and ColorOS quick settings side by side in unlocked landscape mode,
-with the system's separate notification / quick settings mode enabled.
-It preserves native notification interactions and each panel's own animations.
-
-Tested only on OPD2413, Android 16 (API 36), ColorOS 16.1,
-firmware OPD2413_16.0.9.400(CN01), SystemUI 16.99.12 (169912),
-and KernelSU. Version 0.5.0 was tested with LSPosed IT 2.2.1-it (7920), API 102.
-Historical 0.4/0.4.1 testing used LSPosed IT 2.1.1-it (7789).
-The new module requires modern Xposed API 102 or later.
-Static scope: com.android.systemui only. No launcher activity.
-This is not a universal ColorOS / OnePlus module.
-
-The new package is 0.5.0 (versionCode 6), with a signed release APK
-and SHA256SUMS. It retains the OPD2413 device condition, but does not gate
-activation on an exact Android API or SystemUI version code. New firmware
-is attempted using the required OEM APIs; compatibility issues are tracked
-and fixed. Untested firmware is not claimed to be verified.
-SystemUI modifications may still cause failures; recovery requires previously
-authorized ADB and working root access.
+b3fbef5b9ddd4821a80734448cbbf425e3e1c3e05fdad37974983f0e914f3767
 ```
 
-由 `FFDVDGD` 账号提交，不要使用 `[transfer]` 转移源码仓库：官方模块仓库不需要源码。
+已从官方 Release 回下载 APK 与 `SHA256SUMS` 并验证，APK 的 v3 签名及正式证书符合[开发文档](DEVELOPMENT.md#10-签名版本与-github-发布)。设备测试范围沿用 [0.5.0 验证记录](TESTING.md)，不把仓库发布当作新增设备验证。
 
-## 3. 获准后填充模块仓库
+目前未配置跨仓库自动同步工作流或 `MODULE_REPO_TOKEN`。后续发布仍须同步分发文档并上传正式包；内置 `GITHUB_TOKEN` 不能写另一个仓库。若另行启用自动同步，应使用专用、最小权限且有期限的凭据，不把日常 CLI 登录凭据写入工作流或仓库。
 
-官方机器人创建仓库后，接受维护者邀请，再填充独立的分发仓库。不要把整个 OneShade 源码仓库推过去。
+## 3. 分发仓库结构与 About 设置
+
+官方仓库根目录仅含以下三个文件，不包含 Android 源码、构建脚本或签名材料。About 的 Description 和 Home Page 尚待设置：在仓库首页 About 右侧齿轮中填写下表值，不通过 API 绕过官方限制。
 
 | 官方仓库内容／设置 | 准备材料 |
 | --- | --- |
@@ -91,17 +63,15 @@ authorized ADB and working root access.
 
 包名、版本、标签、静态作用域与校验和必须以新产物为准。正式包不含 debug 通知 fixture 或通知发布权限，框架 API 只用于编译。
 
-## 4. 提交与发布检查清单
+## 4. 本次发布状态与后续检查
 
-- [ ] 包名归属已解决，申请账号、标题与最终 APK applicationId 一致。
-- [ ] MIT 许可证及申请引用的介绍材料已推送到公开源码仓库，链接可访问。
-- [ ] 正式 APK 的 applicationId、versionCode、versionName 与申请／标签一致。
-- [ ] 使用 `apksigner verify --verbose --print-certs` 验证签名；证书符合 [签名发布说明](DEVELOPMENT.md#10-签名版本与-github-发布)。
-- [ ] SHA-256 与正式发布文件一致，release 不含 debug 测试组件，含 Xposed 入口与 SystemUI 作用域。
-- [ ] 无源码行为改动时复用已有版本的验证记录，不把文档准备声称为新的实机验证；改包名或重新构建后重新执行适用的构建、lint、安装与实机检查。
-- [ ] 源码、图片和日志不含密钥、密码、厂商 APK、反编译源码或个人通知资料。
-- [ ] 提交申请并接受邀请后，完成 `SUMMARY`、`README.md`、仓库设置和正式 Release。
-- [ ] 发布时同时附带 APK 并采用正确标签；不要只替换已有 Release 的 APK 附件，官方机器人可能不会检测到纯附件变更。
+- [x] 包名归属已解决，官方仓库名与最终 APK applicationId 一致。
+- [x] MIT 许可证、模块介绍及 `SUMMARY` 已推送到官方分发仓库。
+- [x] 正式 APK 的 applicationId、versionCode、versionName 与 `6-0.5.0` 标签一致。
+- [x] 官方附件回下载后 SHA-256 与原包一致，正式 v3 签名验证通过。
+- [x] 复用已有版本验证记录，没有重新构建、签名或声称新增实机验证。
+- [x] 发布时先上传 APK 与校验文件至草稿，再公开 Release。
+- [ ] 在 GitHub 网页填写 About 的 Description 和 Home Page。
 - [ ] 等待官方索引更新（官方说明通常为 5–60 分钟），再检查网页介绍、版本和下载；未显示时检查仓库是否完整，而不是直接宣称已收录。
 
-创建外部 issue、推送源码或分发仓库、发布 Release 均需维护者明确授权。此清单不执行这些操作。
+后续版本应先完成适用的构建、签名、实机检查和隐私审查，再同步文档与原始正式包。不要覆盖同一已发布标签中内容不同的 APK；应递增版本并创建新 Release。仅替换 APK 附件可能不会触发官方索引，必须带 APK 一起发布正确标签的 Release。

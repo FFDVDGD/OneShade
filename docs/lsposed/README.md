@@ -21,7 +21,7 @@ LSPosed 模块：在解锁、横屏、通知与控制中心分离模式下，左
 
 ## 安装与使用
 
-1. 下载并安装正式签名 APK；源码仓库的 [Releases](https://github.com/FFDVDGD/OneShade/releases/latest) 同时提供 `SHA256SUMS`。
+1. 从[官方分发仓库 Releases](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/latest) 下载并安装正式签名 APK 和 `SHA256SUMS`；[源码仓库 Releases](https://github.com/FFDVDGD/OneShade/releases/latest) 提供相同安装包。
 2. 在 LSPosed 启用“平板双栏控制中心”；`staticScope=true` 仅允许系统界面 `com.android.systemui`，确认它已启用。
 3. 保存当前操作后重载 SystemUI；若回到锁屏，正常解锁。
 4. 横屏并开启系统的通知／控制中心分离模式，从顶部任一侧下拉。

@@ -54,7 +54,7 @@ OneShade 是 LSPosed 模块。在解锁、横屏、通知与控制中心分离�
 
 ## 下载与安装
 
-1. 从 [GitHub Releases](https://github.com/FFDVDGD/OneShade/releases/latest) 下载正式签名的 `OneShade-v*.apk`；同页提供 `SHA256SUMS`。
+1. 从[官方分发仓库 Releases](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/latest) 或[源码仓库 Releases](https://github.com/FFDVDGD/OneShade/releases/latest) 下载正式签名的 `OneShade-v*.apk`；同页提供 `SHA256SUMS`，两处 0.5.0 安装包完全相同。
 2. 安装后，在 LSPosed 启用“平板双栏控制中心”；静态作用域只允许系统界面 `com.android.systemui`，确认它已启用。
 3. 保存当前操作，重载 SystemUI；如果回到锁屏，正常解锁。
 4. 横屏并打开系统的通知／控制中心分离模式，从顶部任一侧下拉。
@@ -96,7 +96,7 @@ debug APK 使用本地 debug 签名，包含由 DUMP 权限保护的通知测试
 - [完整开发文档](docs/DEVELOPMENT.md)：工程、Hook 表、调用关系、状态协调、原生动画、布局、触摸路由、新固件适配、签名及发布。
 - [实机验证与排查](docs/TESTING.md)：安全准备、通知 fixture、测试矩阵、高帧率录屏、已有证据、未覆盖项及恢复步骤。
 - [更新记录](CHANGELOG.md)。
-- [LSPosed 官方模块仓库收录准备](docs/LSPOSED.md)：申请草稿、分发介绍与发布清单；尚未提交或收录。
+- [LSPosed 官方模块仓库发布与维护](docs/LSPOSED.md)：官方仓库与 0.5.0 已发布；About 待网页设置，目录展示尚待确认。
 
 0.4 的实机基准中，10 次左右交替开合均显示两栏，通知点击／划除／滚动、两侧空白手势及设置按钮通过。0.4.1 不改控制中心源码，另验证了正式 APK 的构建、签名、覆盖安装、名称及 SystemUI 重载后的双栏功能。CI 不替代实机验证。
 

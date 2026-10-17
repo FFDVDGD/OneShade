@@ -195,7 +195,7 @@ content.setTranslationX(targetLeft - layoutLeft(content));
 
 0.5.0 的应用 ID 为 `io.github.ffdvdgd.oneshade`，对应维护者 GitHub 用户名。旧版 `io.github.opd2413.ctrlcenter` 是不同 Android 应用，不能覆盖更新；先停用／卸载旧模块，再安装和启用新模块。发布新 APK 时，修改 `app/build.gradle` 的 versionName，并递增 versionCode；源码仓库标签采用 `v<versionName>`。应用名称等打包内容改动需要发布新 APK；仅仓库文档或许可证变更不需要重打包或增加 versionCode。
 
-LSPosed 官方模块分发仓库使用 `<versionCode>-<versionName>` 标签（当前为 `6-0.5.0`），不包含源码。申请草稿、分发材料和检查清单见 [收录准备](LSPOSED.md)。本仓库尚未提交收录申请。
+LSPosed [官方分发仓库](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade)使用 `<versionCode>-<versionName>` 标签，不包含源码。当前已发布 [0.5.0 / `6-0.5.0`](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/tag/6-0.5.0)，APK 与源码仓库原包一致；About 待网页设置，目录展示尚待确认。分发材料、发布检查与后续同步说明见[发布与维护](LSPOSED.md)。
 
 0.5.0 新包的正式证书 SHA-256（后续新包更新复用此证书）：
 
