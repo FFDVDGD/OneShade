@@ -1,109 +1,55 @@
 # OneShade
 
-**OPD2413 双栏控制中心：通知与快捷设置，同屏显示。**
+**通知在左，控制中心在右。**
 
 [![Build](https://github.com/FFDVDGD/OneShade/actions/workflows/build.yml/badge.svg)](https://github.com/FFDVDGD/OneShade/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/FFDVDGD/OneShade)](https://github.com/FFDVDGD/OneShade/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-OneShade 是 LSPosed 模块。在解锁、横屏、通知与控制中心分离模式下，左侧显示真实通知，右侧保留原生 ColorOS 控制中心。应用显示名称为“平板双栏控制中心”，包名为 `io.github.ffdvdgd.oneshade`。
-
-**0.5.0 更改了包名：从 0.4.1 或更早版本迁移时，请先停用并卸载旧模块 `io.github.opd2413.ctrlcenter`，再安装、启用新包；不能覆盖升级。**
+OneShade 是适用于 OPD2413 的 LSPosed 模块，让 ColorOS 在横屏时同时显示通知和控制中心，保留系统原生交互与动画。
 
 ![原生双栏效果，个人信息已遮挡](docs/images/dual-shade.png)
 
-截图来自 0.4 的原生动画验证，已遮挡设备名称与 Wi-Fi 名称；新版保留相同布局和原生动画逻辑。
-
 ## 功能
 
-- 顶部左右任一侧下拉，同屏显示通知和控制中心。
-- 原生通知点击、划除、通知组展开和列表滚动，不复制通知数据。
-- 左侧通知保持原生宽度，按右栏边界在可用空间居中。
-- 两侧空白可轻点或上滑关闭；控制中心按钮保持原生交互。
-- 两栏联动启动原生动画，保留各自的卡片／开关弹簧和回弹，不强制逐帧相同。
-- 隐藏左侧重复状态图标，保留时钟、通知设置按钮及右侧图标。
-- 竖屏、锁屏及关闭分离模式时不启用双栏。
+- 从顶部任一侧下拉，同时展开两栏。
+- 通知在左侧居中，支持点击、划除、展开和滚动。
+- 保留原生控制中心按钮、滑块及两栏动画，精简重复状态图标。
+- 点击或上滑两侧空白处关闭；竖屏和锁屏保持原生界面。
 
-不需要通知读取权限，没有悬浮窗或常驻服务，不替换系统 APK，也不改变其他模块的配置。
+## 使用要求
 
-## 兼容性与风险
+- OPD2413，Android 16 及以上，ColorOS 通知与控制中心分离模式。
+- 已 Root，并安装支持 **Xposed API 102** 的 LSPosed。
 
-面向 **OPD2413、Android 16 及以上、ColorOS 分离式通知／控制中心**，需要支持现代 Xposed API 102 的 LSPosed。以下是已有实测记录，不是固件版本白名单，也不代表所有 ColorOS 设备都已适配。
-
-| 项目 | 实测值 |
-| --- | --- |
-| 设备型号 | OPD2413 |
-| 系统 | Android 16 / API 36，ColorOS 16.1 |
-| 固件 | `OPD2413_16.0.9.400(CN01)` |
-| SystemUI | `16.99.12` / versionCode `169912` |
-| 框架 | LSPosed IT `2.2.1-it (7920)`，API 102（0.5.0 实测） |
-| Root | KernelSU |
-
-代码保留 OPD2413 型号条件，不再要求 Android API 必须等于 36 或 SystemUI versionCode 必须等于 `169912`。新固件会尝试使用现有私有 API；缺少 Hook 方法、字段或视图时记录错误并撤销本模块 Hook。遇到问题请附上设备与版本信息反馈，不必先修改版本白名单。未实测的版本仍可能出现运行时差异。
-
-模块采用现代 API，`staticScope=true`，声明的作用域仅 `com.android.systemui`。框架不允许把作用域扩展到其他应用；这不等于保证所有固件兼容。
-
-已知限制：
-
-- 极快速收起后立即重拉，可能被原生关闭阶段忽略，留在桌面。
-- 同步的是启动意图，两栏原生曲线及结束时刻并不完全相同。
-- ColorOS 自动合并通知的行为保持原样。
-- 未覆盖其他固件、全部通知类型、所有连续／反向手势、与所有 Root 模块的组合及整机重启后的长期稳定性。
-
-修改 SystemUI 私有行为仍可能导致界面异常。**安装前保持已授权 USB ADB 和可用 Root 恢复路径。** 去掉开发期名称标记不表示消除了上述风险。
+已在 ColorOS 16.1 上测试；不锁定具体固件版本，但新固件仍可能需要适配。其他型号暂不支持。
 
 ## 下载与安装
 
-1. 从[官方分发仓库 Releases](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/latest) 或[源码仓库 Releases](https://github.com/FFDVDGD/OneShade/releases/latest) 下载正式签名的 `OneShade-v*.apk`；同页提供 `SHA256SUMS`，两处 0.5.0 安装包完全相同。
-2. 安装后，在 LSPosed 启用“平板双栏控制中心”；静态作用域只允许系统界面 `com.android.systemui`，确认它已启用。
-3. 保存当前操作，重载 SystemUI；如果回到锁屏，正常解锁。
-4. 横屏并打开系统的通知／控制中心分离模式，从顶部任一侧下拉。
+1. 从[官方分发仓库](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/latest)或[源码仓库](https://github.com/FFDVDGD/OneShade/releases/latest)下载并安装 APK。
+2. 在 LSPosed 启用“平板双栏控制中心”，确认作用域中的“系统界面”已启用。
+3. 保存当前操作后重启系统界面，或重启设备。
+4. 开启系统的通知／控制中心分离模式，横屏后从顶部下拉。
 
-模块没有桌面入口。在 LSPosed 或系统应用信息页查看名称和版本。
+模块没有桌面图标，不需要额外授予通知读取或悬浮窗权限。
 
-ADB 安装示例：
+**从 0.4.1 或更早版本升级：** 0.5.0 已更改包名，请先停用并卸载旧模块 `io.github.opd2413.ctrlcenter`，再安装新包；不能覆盖升级。
 
-```sh
-adb devices -l
-SERIAL='<目标 OPD2413 的 ADB 序列号>'
-adb -s "$SERIAL" shell getprop ro.product.model
-adb -s "$SERIAL" install -r OneShade-v0.5.0.apk
-adb -s "$SERIAL" shell 'su -c "kill $(pidof com.android.systemui)"'
-```
+## 注意事项
 
-同一新包名的后续版本需要使用相同正式签名才能覆盖更新。0.4.1 的签名轮换证明只适用于旧包，不能让不同 applicationId 覆盖安装。其他人自行编译的 APK 可能签名不同；出现 `INSTALL_FAILED_UPDATE_INCOMPATIBLE` 时不要绕过签名验证。
+- 极快速收起后立即下拉，可能无法展开；两栏原生动画的结束时刻可能不同。
+- 修改系统界面存在兼容风险。安装前保留已授权 USB ADB 和可用的 Root 恢复方式。
+- 出现异常时，先在 LSPosed 停用模块并重启系统界面；无法操作时参见[故障排查与恢复](docs/TESTING.md#故障排查与恢复)。
 
-## 恢复原状
+## 反馈与文档
 
-优先在 LSPosed 关闭本模块，再重载 SystemUI。界面无法使用而 USB / Root 仍可用时：
+通过 [Issues](https://github.com/FFDVDGD/OneShade/issues) 反馈问题，请附设备型号、系统／框架／模块版本和复现步骤；日志与截图请先脱敏。
 
-```sh
-./scripts/recover-device.sh "$SERIAL"
-```
+- [更新记录](CHANGELOG.md)
+- [开发文档](docs/DEVELOPMENT.md)
+- [测试与故障排查](docs/TESTING.md)
+- [签名与发布维护](docs/LSPOSED.md)
 
-脚本要求显式指定设备，先检查型号，随后只卸载 `io.github.ffdvdgd.oneshade` 并重启 SystemUI；不会停用 LSPosed、卸载其他模块或清空用户通知。旧版请卸载旧包名。该路径要求已有 ADB 授权和可用 Root，不能保证在所有系统故障中可达。
+## 许可
 
-## 构建与开发文档
-
-推荐 JDK 21，Android SDK 36；源码级别为 Java 17。使用仓库自带 Gradle Wrapper：
-
-```sh
-./gradlew :app:assembleDebug :app:assembleRelease :app:lintDebug :app:lintRelease
-```
-
-debug APK 使用本地 debug 签名，包含由 DUMP 权限保护的通知测试 Activity；release 产物默认未签名，正式发布时签名，不含测试组件。CI 的未签名 APK 不是可安装的 GitHub Release 包。
-
-- [完整开发文档](docs/DEVELOPMENT.md)：工程、Hook 表、调用关系、状态协调、原生动画、布局、触摸路由、新固件适配、签名及发布。
-- [实机验证与排查](docs/TESTING.md)：安全准备、通知 fixture、测试矩阵、高帧率录屏、已有证据、未覆盖项及恢复步骤。
-- [更新记录](CHANGELOG.md)。
-- [LSPosed 官方模块仓库发布与维护](docs/LSPOSED.md)：官方仓库与 0.5.0 已发布；About 待网页设置，目录展示尚待确认。
-
-0.4 的实机基准中，10 次左右交替开合均显示两栏，通知点击／划除／滚动、两侧空白手势及设置按钮通过。0.4.1 不改控制中心源码，另验证了正式 APK 的构建、签名、覆盖安装、名称及 SystemUI 重载后的双栏功能。CI 不替代实机验证。
-
-0.5.0 在 API 102 框架上重新验证了新包识别、静态作用域、10 次交替开合、测试通知点击／自动删除、通知组展开及单条右划删除。正式签名 APK 已安装，设备上的 APK 与发布文件 SHA-256 一致；重载后复查左右入口、两侧空白轻点／上滑和竖屏回退。具体范围与未覆盖项见验证文档。
-
-## 调研与许可说明
-
-调研过 LuckyTool 和 [Oxygen Customizer](https://github.com/DHD2280/Oxygen-Customizer)。后者提供 Oplus Hook 参考，本项目的具体私有 API 与逻辑以实测设备为准，没有直接移植完整模块。系统自带 split shade 与厂商平板分离页互斥策略，使单改资源布尔值不足以实现目标。
-
-本项目采用 [MIT License](LICENSE)，Copyright (c) 2026 FFDVDGD。第三方组件保留原有许可声明，MIT 不替代其许可，详情见开发文档。不分发厂商 APK、反编译源码或个人通知资料。
+[MIT License](LICENSE)。第三方组件保留各自许可，详见[开发文档](docs/DEVELOPMENT.md#来源与许可)。

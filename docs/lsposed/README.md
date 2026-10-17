@@ -1,48 +1,50 @@
 # OneShade · 平板双栏控制中心
 
-LSPosed 模块：在解锁、横屏、通知与控制中心分离模式下，左侧显示真实通知，右侧保留原生 ColorOS 控制中心。保留通知点击、划除、展开、滚动与控制中心按钮交互，使用两栏各自的原生动画。
+**通知在左，控制中心在右。**
 
-面向 OPD2413、Android 16 及以上的 ColorOS 分离式通知／控制中心，需要支持现代 Xposed API 102 的 LSPosed。以下是实测记录，不是固件白名单；其他设备不保证适配。
-
-包名为 `io.github.ffdvdgd.oneshade`。**0.5.0 改包名，旧版不能覆盖升级；请先停用并卸载 `io.github.opd2413.ctrlcenter`，再安装、启用新包。**
-
-| 项目 | 实测值 |
-| --- | --- |
-| 设备 | OPD2413 |
-| 系统 | Android 16 / API 36，ColorOS 16.1 |
-| 固件 | `OPD2413_16.0.9.400(CN01)` |
-| SystemUI | `16.99.12` / versionCode `169912` |
-| 框架 | LSPosed IT `2.2.1-it (7920)`，API 102（0.5.0 实测） |
-| Root | KernelSU |
+OneShade 是适用于 OPD2413 的 LSPosed 模块，让 ColorOS 在横屏时同时显示通知和控制中心，保留系统原生交互与动画。
 
 ![原生双栏效果，个人信息已遮挡](https://raw.githubusercontent.com/FFDVDGD/OneShade/main/docs/images/dual-shade.png)
 
-截图来自 0.4 的原生动画验证；新版保留相同布局和原生动画逻辑。
+## 功能
 
-## 安装与使用
+- 从顶部任一侧下拉，同时展开两栏。
+- 通知在左侧居中，支持点击、划除、展开和滚动。
+- 保留原生控制中心按钮、滑块及两栏动画，精简重复状态图标。
+- 点击或上滑两侧空白处关闭；竖屏和锁屏保持原生界面。
 
-1. 从[官方分发仓库 Releases](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/latest) 下载并安装正式签名 APK 和 `SHA256SUMS`；[源码仓库 Releases](https://github.com/FFDVDGD/OneShade/releases/latest) 提供相同安装包。
-2. 在 LSPosed 启用“平板双栏控制中心”；`staticScope=true` 仅允许系统界面 `com.android.systemui`，确认它已启用。
-3. 保存当前操作后重载 SystemUI；若回到锁屏，正常解锁。
-4. 横屏并开启系统的通知／控制中心分离模式，从顶部任一侧下拉。
+## 使用要求
 
-模块没有桌面入口，不需要通知读取权限、悬浮窗或常驻服务。竖屏、锁屏及关闭分离模式时不启用双栏。代码保留型号条件，不锁定 Android API 或 SystemUI 的精确版本；新固件会尝试使用现有厂商私有 API，缺失时记录错误并撤销本模块 Hook。遇到兼容问题请反馈版本信息与复现步骤。
+- OPD2413，Android 16 及以上，ColorOS 通知与控制中心分离模式。
+- 已 Root，并安装支持 **Xposed API 102** 的 LSPosed。
 
-## 风险与恢复
+已在 ColorOS 16.1 上测试；不锁定具体固件版本，但新固件仍可能需要适配。其他型号暂不支持。
 
-修改 SystemUI 私有行为可能导致界面异常，**安装前保持已授权 USB ADB 和可用 Root 恢复路径**。
+## 下载与安装
 
-- 极快速收起后立即重拉，可能被原生关闭阶段忽略，留在桌面。
-- 两栏同步启动意图，不保证动画曲线及结束时刻相同。
-- 未覆盖其他固件、全部通知类型、所有连续手势、其他模块组合及整机重启后的长期稳定性。
-- 优先在 LSPosed 关闭本模块，再重载 SystemUI。无法操作界面时，参照源码仓库的 [恢复步骤](https://github.com/FFDVDGD/OneShade#恢复原状)；恢复依赖已有 ADB 授权和可用 Root，不保证在所有故障中可达。
+1. 从[官方分发仓库](https://github.com/Xposed-Modules-Repo/io.github.ffdvdgd.oneshade/releases/latest)或[源码仓库](https://github.com/FFDVDGD/OneShade/releases/latest)下载并安装 APK。
+2. 在 LSPosed 启用“平板双栏控制中心”，确认作用域中的“系统界面”已启用。
+3. 保存当前操作后重启系统界面，或重启设备。
+4. 开启系统的通知／控制中心分离模式，横屏后从顶部下拉。
 
-更新请使用相同正式签名；自行编译的 APK 可能无法覆盖安装，不要绕过签名验证。
+模块没有桌面图标，不需要额外授予通知读取或悬浮窗权限。
 
-## 源码、反馈与许可
+**从 0.4.1 或更早版本升级：** 0.5.0 已更改包名，请先停用并卸载旧模块 `io.github.opd2413.ctrlcenter`，再安装新包；不能覆盖升级。
 
-- [源码与完整说明](https://github.com/FFDVDGD/OneShade)
-- [问题反馈](https://github.com/FFDVDGD/OneShade/issues)：请提供设备、固件、SystemUI 与框架版本、模块版本及复现步骤；上传日志前去除个人信息。
+## 注意事项
+
+- 极快速收起后立即下拉，可能无法展开；两栏原生动画的结束时刻可能不同。
+- 修改系统界面存在兼容风险。安装前保留已授权 USB ADB 和可用的 Root 恢复方式。
+- 出现异常时，先在 LSPosed 停用模块并重启系统界面；无法操作时参见[故障排查与恢复](https://github.com/FFDVDGD/OneShade/blob/main/docs/TESTING.md#故障排查与恢复)。
+
+## 反馈与文档
+
+通过 [Issues](https://github.com/FFDVDGD/OneShade/issues) 反馈问题，请附设备型号、系统／框架／模块版本和复现步骤；日志与截图请先脱敏。
+
+- [源码](https://github.com/FFDVDGD/OneShade)
 - [更新记录](https://github.com/FFDVDGD/OneShade/blob/main/CHANGELOG.md)
-- [实机验证范围](https://github.com/FFDVDGD/OneShade/blob/main/docs/TESTING.md)
-- [MIT License](https://github.com/FFDVDGD/OneShade/blob/main/LICENSE)。第三方组件保留原有许可，不分发厂商 APK、反编译源码或个人通知资料。
+- [测试与故障排查](https://github.com/FFDVDGD/OneShade/blob/main/docs/TESTING.md)
+
+## 许可
+
+[MIT License](https://github.com/FFDVDGD/OneShade/blob/main/LICENSE)。第三方组件保留各自许可，详见[开发文档](https://github.com/FFDVDGD/OneShade/blob/main/docs/DEVELOPMENT.md#来源与许可)。
