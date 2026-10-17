@@ -1,0 +1,51 @@
+name: 同步 LSPosed 官方目录
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/lsposed/README.md
+      - SUMMARY
+      - LICENSE
+      - .github/scripts/*.py
+      - .github/workflows/sync-module-repo.yml
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 要同步的版本标签；latest 为最新正式版，留空只同步说明
+        default: latest
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-module-repo
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'FFDVDGD/OneShade' && (github.event_name != 'release' || !github.event.release.draft)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: 检查发行同步规则
+        run: python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: 同步说明和发行包
+        env:
+          GH_TOKEN: ${{ secrets.MODULE_REPO_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo '::error::请先在源码仓库的 Actions Secrets 中设置 MODULE_REPO_TOKEN。'
+            exit 1
+          fi
+          python3 -B .github/scripts/sync_module_repo.py
